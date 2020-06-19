@@ -42,22 +42,27 @@ func (c *conn) HandshakeAddress() net.Address {
 // Client initiates a TLS client handshake on the given connection.
 func Client(c net.Conn, config *tls.Config) net.Conn {
 	tlsConn := tls.Client(c, config)
-	return &conn{Conn: tlsConn}
+	client := &conn{Conn: tlsConn}
+	if err := client.Handshake(); err != nil {
+		return nil
+	}
+	return client
 }
 
 func copyConfig(c *tls.Config) *utls.Config {
 	return &utls.Config{
-		NextProtos:         c.NextProtos,
 		ServerName:         c.ServerName,
 		InsecureSkipVerify: c.InsecureSkipVerify,
-		MinVersion:         utls.VersionTLS12,
-		MaxVersion:         utls.VersionTLS12,
 	}
 }
 
 func UClient(c net.Conn, config *tls.Config) net.Conn {
 	uConfig := copyConfig(config)
-	return utls.Client(c, uConfig)
+	client := utls.UClient(c, uConfig, utls.HelloChrome_Auto)
+	if err := client.Handshake(); err != nil {
+		return nil
+	}
+	return client
 }
 
 // Server initiates a TLS server handshake on the given connection.
